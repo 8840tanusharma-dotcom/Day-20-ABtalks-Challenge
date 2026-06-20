@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>Face Puzzle — Snap, Shuffle, Solve</title>
+<meta name="description" content="Take a photo of yourself and solve it as a sliding puzzle. Camera-based puzzle game with timer, move counter and leaderboard." />
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/bebas-neue@5.0.21/index.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.21/index.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/roboto-mono@5.0.21/index.css" />
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="grain-overlay" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">◎</span>
+    <span class="brand-text">Face<em>Puzzle</em></span>
+  </div>
+  <div class="topbar-meta" id="topbarMeta" hidden>
+    <div class="meta-chip">
+      <span class="meta-label">Time</span>
+      <span class="meta-value mono" id="hudTime">00:00.0</span>
+    </div>
+    <div class="meta-chip">
+      <span class="meta-label">Moves</span>
+      <span class="meta-value mono" id="hudMoves">0</span>
+    </div>
+    <div class="meta-chip">
+      <span class="meta-label">Placed</span>
+      <span class="meta-value mono" id="hudPlaced">0/0</span>
+    </div>
+  </div>
+</header>
+
+<main class="stage">
+
+  <!-- ============ STAGE 1: CAMERA ============ -->
+  <section class="screen" id="screenCamera" data-active="true">
+    <div class="screen-inner camera-layout">
+      <div class="screen-copy">
+        <p class="eyebrow">Step 01 — Capture</p>
+        <h1 class="display-title">Look into the lens.</h1>
+        <p class="lede">We'll cut your portrait into pieces and scramble it. Good lighting helps — find a window, frame your face, and hit the shutter when ready.</p>
+      </div>
+
+      <div class="camera-rig">
+        <div class="viewfinder" id="viewfinder">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="captureCanvas" hidden></canvas>
+          <div class="viewfinder-frame" aria-hidden="true">
+            <span class="corner tl"></span><span class="corner tr"></span>
+            <span class="corner bl"></span><span class="corner br"></span>
+          </div>
+          <div class="viewfinder-state" id="cameraState">
+            <div class="state-card" id="stateLoading">
+              <div class="spinner" aria-hidden="true"></div>
+              <p>Requesting camera access…</p>
+            </div>
+            <div class="state-card" id="stateDenied" hidden>
+              <p class="state-icon" aria-hidden="true">⌀</p>
+              <p class="state-title">Camera unavailable</p>
+              <p class="state-body" id="deniedReason">We couldn't reach your camera. Check your browser's permission settings and try again — or upload a photo instead.</p>
+              <div class="state-actions">
+                <button class="btn btn-primary" id="retryCameraBtn" type="button">Try again</button>
+                <label class="btn btn-ghost" for="fileInput">Upload a photo</label>
+              </div>
+            </div>
+          </div>
+          <div class="flash" id="flash" aria-hidden="true"></div>
+        </div>
+
+        <div class="camera-controls">
+          <input type="file" id="fileInput" accept="image/*" capture="user" hidden />
+          <label class="btn btn-ghost btn-small" for="fileInput">Upload instead</label>
+          <button class="btn btn-shutter" id="captureBtn" type="button" disabled>
+            <span class="shutter-ring"><span class="shutter-dot"></span></span>
+            <span>Take Photo</span>
+          </button>
+          <button class="btn btn-ghost btn-small" id="switchCamBtn" type="button" hidden>Flip camera</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2: REVIEW + DIFFICULTY ============ -->
+  <section class="screen" id="screenReview">
+    <div class="screen-inner review-layout">
+      <div class="screen-copy">
+        <p class="eyebrow">Step 02 — Develop</p>
+        <h1 class="display-title">Choose your grid.</h1>
+        <p class="lede">Smaller grids solve fast, bigger grids bite back. Pick a difficulty and we'll slice your portrait into a fresh puzzle.</p>
+
+        <div class="difficulty-list" id="difficultyList" role="radiogroup" aria-label="Puzzle difficulty">
+          <button class="diff-card" data-size="3" role="radio" aria-checked="false" type="button">
+            <span class="diff-grid g3" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="diff-text">
+              <span class="diff-name">Easy</span>
+              <span class="diff-sub">3 × 3 — 9 pieces</span>
+            </span>
+          </button>
+          <button class="diff-card" data-size="4" role="radio" aria-checked="false" type="button">
+            <span class="diff-grid g4" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="diff-text">
+              <span class="diff-name">Medium</span>
+              <span class="diff-sub">4 × 4 — 16 pieces</span>
+            </span>
+          </button>
+          <button class="diff-card" data-size="5" role="radio" aria-checked="false" type="button">
+            <span class="diff-grid g5" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="diff-text">
+              <span class="diff-name">Hard</span>
+              <span class="diff-sub">5 × 5 — 25 pieces</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="contact-sheet">
+        <div class="print-frame">
+          <canvas id="previewCanvas"></canvas>
+          <span class="print-tab">Exhibit A</span>
+        </div>
+        <div class="review-actions">
+          <button class="btn btn-ghost" id="retakeBtn" type="button">Retake Photo</button>
+          <button class="btn btn-primary" id="startPuzzleBtn" type="button" disabled>Start Puzzle</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 3: PUZZLE ============ -->
+  <section class="screen" id="screenPuzzle">
+    <div class="screen-inner puzzle-layout">
+      <div class="puzzle-toolbar">
+        <div class="toolbar-left">
+          <span class="diff-pill" id="puzzleDiffPill">3 × 3</span>
+        </div>
+        <div class="toolbar-stats">
+          <div class="stat-block">
+            <span class="stat-label">Time</span>
+            <span class="stat-value mono" id="timerDisplay">00:00.0</span>
+          </div>
+          <div class="stat-block">
+            <span class="stat-label">Moves</span>
+            <span class="stat-value mono" id="movesDisplay">0</span>
+          </div>
+          <div class="stat-block">
+            <span class="stat-label">Placed</span>
+            <span class="stat-value mono" id="placedDisplay">0/9</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost btn-small" id="peekBtn" type="button">Hold to peek</button>
+          <button class="btn btn-ghost btn-small" id="shuffleAgainBtn" type="button">Reshuffle</button>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board" aria-label="Puzzle board"></div>
+        <img id="ghostImage" class="ghost-image" alt="Full reference photo" />
+      </div>
+
+      <p class="hint-text">Drag a piece onto another to swap them. Pieces glow green once they click into place.</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ RESULTS OVERLAY ============ -->
+<div class="overlay" id="resultsOverlay" hidden>
+  <div class="overlay-scrim"></div>
+  <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <p class="eyebrow result-eyebrow">Puzzle complete</p>
+    <h2 id="resultTitle" class="display-title result-title">Sharp eye.</h2>
+
+    <div class="result-photo-row">
+      <div class="result-photo">
+        <img id="resultImage" alt="Your solved portrait" />
+      </div>
+      <div class="result-stats">
+        <div class="result-stat">
+          <span class="rs-value mono" id="resultTime">00:00.0</span>
+          <span class="rs-label">Final time</span>
+        </div>
+        <div class="result-stat">
+          <span class="rs-value mono" id="resultMoves">0</span>
+          <span class="rs-label">Moves</span>
+        </div>
+        <div class="result-stat">
+          <span class="rs-value mono" id="resultDiff">3×3</span>
+          <span class="rs-label">Difficulty</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="leaderboard" id="leaderboardWrap">
+      <p class="leaderboard-title">Best times — <span id="leaderboardDiffLabel">3×3</span></p>
+      <ol class="leaderboard-list" id="leaderboardList"></ol>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn btn-ghost" id="newPhotoBtn" type="button">New Photo</button>
+      <button class="btn btn-primary" id="playAgainBtn" type="button">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="script.js"></script>
+</body>
+</html>
